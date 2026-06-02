@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Shopify OAuth sessions (@shopify/shopify-app-session-storage-prisma)
+// ---------------------------------------------------------------------------
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+  createdAt           DateTime  @default(now())
+
+  @@index([shop])
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+enum Plan {
+  FREE
+  GROWTH
+  PRO
+  ENTERPRISE
+}
+
+enum CustomerTier {
+  BRONZE
+  SILVER
+  GOLD
+}
+
+enum PointsTransactionType {
+  EARNED
+  REDEEMED
+  BONUS
+}
+
+// ---------------------------------------------------------------------------
+// Merchant store
+// ---------------------------------------------------------------------------
+model Store {
+  id          String   @id @default(cuid())
+  shop        String   @unique
+  accessToken String
+  plan        Plan     @default(FREE)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  loyaltyProgram    LoyaltyProgram?
+  customers         Customer[]
+  pointsTransactions PointsTransaction[]
+  upsellOffers      UpsellOffer[]
+  upsellConversions UpsellConversion[]
+  reviewRequests    ReviewRequest[]
+}
+
+// ---------------------------------------------------------------------------
+// Loyalty program settings (one per store)
+// ---------------------------------------------------------------------------
+model LoyaltyProgram {
+  id               String  @id @default(cuid())
+  storeId          String  @unique
+  pointsPerDollar  Int     @default(10)
+  rewardThreshold  Int     @default(100)
+  pointsName       String  @default("points")
+  isActive         Boolean @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Loyalty members
+// ---------------------------------------------------------------------------
+model Customer {
+  id                 String       @id @default(cuid())
+  storeId            String
+  shopifyCustomerId  String
+  email              String?
+  firstName          String?
+  lastName           String?
+  totalPoints        Int          @default(0)
+  lifetimePoints     Int          @default(0)
+  lifetimeSpend      Decimal      @default(0) @db.Decimal(12, 2)
+  tier               CustomerTier @default(BRONZE)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  store              Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  pointsTransactions PointsTransaction[]
+  upsellConversions  UpsellConversion[]
+  reviewRequests     ReviewRequest[]
+
+  @@unique([storeId, shopifyCustomerId])
+  @@index([storeId])
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// Points ledger
+// ---------------------------------------------------------------------------
+model PointsTransaction {
+  id         String                @id @default(cuid())
+  customerId String
+  storeId    String
+  type       PointsTransactionType
+  points     Int
+  reason     String?
+  orderId    String?
+  createdAt  DateTime              @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([storeId])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Upsell offers
+// ---------------------------------------------------------------------------
+model UpsellOffer {
+  id               String   @id @default(cuid())
+  storeId          String
+  productId        String
+  productTitle     String
+  originalPrice    Decimal  @db.Decimal(10, 2)
+  discountedPrice  Decimal  @db.Decimal(10, 2)
+  discountPercent  Int
+  isActive         Boolean  @default(true)
+  position         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  store       Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  conversions UpsellConversion[]
+
+  @@index([storeId])
+  @@index([storeId, isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Upsell conversion tracking
+// ---------------------------------------------------------------------------
+model UpsellConversion {
+  id         String   @id @default(cuid())
+  storeId    String
+  offerId    String
+  orderId    String
+  customerId String?
+  accepted   Boolean
+  revenue    Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+
+  store    Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  offer    UpsellOffer  @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  customer Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([storeId])
+  @@index([offerId])
+  @@index([orderId])
+  @@index([customerId])
+}
+
+// ---------------------------------------------------------------------------
+// Review request emails
+// ---------------------------------------------------------------------------
+model ReviewRequest {
+  id             String    @id @default(cuid())
+  storeId        String
+  orderId        String
+  customerId     String?
+  email          String
+  sentAt         DateTime?
+  reviewedAt     DateTime?
+  pointsAwarded  Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@unique([storeId, orderId])
+  @@index([storeId])
+  @@index([orderId])
+  @@index([customerId])
+  @@index([email])
+}
