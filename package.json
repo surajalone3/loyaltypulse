@@ -5,9 +5,12 @@
   "scripts": {
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
+    "dev:shopify": "shopify app dev",
+    "dev:shopify:ngrok": "shopify app dev --tunnel-url=https://legroom-perkiness-bucktooth.ngrok-free.dev:3000",
     "build:frontend": "npm run build --prefix frontend",
     "prisma:generate": "npm run prisma:generate --prefix backend",
     "prisma:migrate": "npm run prisma:migrate --prefix backend",
+    "deploy:extension": "shopify app deploy",
     "postinstall": "npm install --prefix backend && npm install --prefix frontend"
   },
   "devDependencies": {

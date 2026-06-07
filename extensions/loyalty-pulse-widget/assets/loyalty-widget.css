@@ -1,0 +1,304 @@
+.loyaltypulse-widget-root {
+  --lpw-accent: #7c5cff;
+  --lpw-accent-dark: #5b3fd9;
+  --lpw-bg: #ffffff;
+  --lpw-surface: #f7f7fb;
+  --lpw-text: #1a1b26;
+  --lpw-text-muted: #5c5c6b;
+  --lpw-border: rgba(26, 27, 38, 0.1);
+  --lpw-bronze: #b8864a;
+  --lpw-silver: #8a8a9a;
+  --lpw-gold: #c9a227;
+  --lpw-radius: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.lpw-card {
+  background: var(--lpw-bg);
+  border: 1px solid var(--lpw-border);
+  border-radius: var(--lpw-radius);
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(26, 27, 38, 0.08);
+}
+
+.lpw-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, var(--lpw-accent) 0%, var(--lpw-accent-dark) 100%);
+  color: #fff;
+}
+
+.lpw-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.lpw-logo svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.lpw-header-text h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.lpw-header-text p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  opacity: 0.88;
+}
+
+.lpw-body {
+  padding: 20px;
+}
+
+.lpw-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.lpw-stat {
+  background: var(--lpw-surface);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.lpw-stat-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--lpw-text-muted);
+  margin-bottom: 6px;
+}
+
+.lpw-stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--lpw-text);
+  line-height: 1;
+}
+
+.lpw-stat-value--accent {
+  color: var(--lpw-accent);
+}
+
+.lpw-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lpw-tier-badge--bronze {
+  background: rgba(184, 134, 74, 0.15);
+  color: var(--lpw-bronze);
+}
+
+.lpw-tier-badge--silver {
+  background: rgba(138, 138, 154, 0.15);
+  color: var(--lpw-silver);
+}
+
+.lpw-tier-badge--gold {
+  background: rgba(201, 162, 39, 0.15);
+  color: var(--lpw-gold);
+}
+
+.lpw-section-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lpw-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lpw-rewards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lpw-reward {
+  border: 1px solid var(--lpw-border);
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+}
+
+.lpw-reward-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.lpw-reward-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lpw-text);
+}
+
+.lpw-reward-points {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--lpw-accent);
+  white-space: nowrap;
+}
+
+.lpw-reward-desc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lpw-text-muted);
+}
+
+.lpw-reward-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lpw-reward-status {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lpw-reward-status--ready {
+  color: #16a34a;
+}
+
+.lpw-reward-status--locked {
+  color: var(--lpw-text-muted);
+}
+
+.lpw-progress {
+  flex: 1;
+  min-width: 100px;
+  height: 6px;
+  background: var(--lpw-surface);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.lpw-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--lpw-accent), var(--lpw-accent-dark));
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.lpw-empty,
+.lpw-message {
+  text-align: center;
+  padding: 8px 0;
+  color: var(--lpw-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.lpw-guest-cta {
+  display: inline-flex;
+  margin-top: 14px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: var(--lpw-accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: filter 0.15s ease;
+}
+
+.lpw-guest-cta:hover {
+  filter: brightness(1.06);
+  color: #fff;
+}
+
+.lpw-error {
+  padding: 16px;
+  text-align: center;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.lpw-skeleton {
+  border: 1px solid var(--lpw-border);
+  border-radius: var(--lpw-radius);
+  overflow: hidden;
+  background: #fff;
+}
+
+.lpw-skeleton-header {
+  height: 72px;
+  background: linear-gradient(90deg, #ececf4 25%, #f5f5fa 50%, #ececf4 75%);
+  background-size: 200% 100%;
+  animation: lpw-shimmer 1.4s infinite;
+}
+
+.lpw-skeleton-body {
+  padding: 20px;
+}
+
+.lpw-skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, #ececf4 25%, #f5f5fa 50%, #ececf4 75%);
+  background-size: 200% 100%;
+  animation: lpw-shimmer 1.4s infinite;
+}
+
+.lpw-skeleton-line--wide {
+  width: 70%;
+  height: 28px;
+  margin-bottom: 16px;
+}
+
+@keyframes lpw-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .lpw-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .lpw-stat-value {
+    font-size: 22px;
+  }
+}

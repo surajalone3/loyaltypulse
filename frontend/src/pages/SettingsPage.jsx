@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  Page,
-  Layout,
-  Card,
   FormLayout,
   TextField,
   Checkbox,
   Button,
-  Banner,
-  BlockStack,
   Spinner,
-  Text,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { fetchWithSession } from "../utils/api.js";
@@ -87,98 +81,73 @@ export default function SettingsPage() {
   };
 
   return (
-    <Page
-      title="Loyalty Settings"
-      primaryAction={{
-        content: "Save",
-        onAction: handleSave,
-        loading: saving,
-        disabled: loading,
-      }}
-    >
-      <Layout>
-        {error && (
-          <Layout.Section>
-            <Banner tone="critical" title="Error" onDismiss={() => setError(null)}>
-              <p>{error}</p>
-            </Banner>
-          </Layout.Section>
-        )}
+    <>
+      {error && (
+        <div className="lp-banner lp-banner--critical" role="alert">
+          {error}
+        </div>
+      )}
 
-        {success && (
-          <Layout.Section>
-            <Banner
-              tone="success"
-              title="Saved"
-              onDismiss={() => setSuccess(null)}
-            >
-              <p>{success}</p>
-            </Banner>
-          </Layout.Section>
-        )}
+      {success && (
+        <div className="lp-banner lp-banner--success" role="status">
+          {success}
+        </div>
+      )}
 
-        <Layout.Section>
-          <Card>
-            {loading ? (
-              <BlockStack gap="400" inlineAlign="center">
-                <Spinner accessibilityLabel="Loading settings" size="large" />
-                <Text as="p" tone="subdued">
-                  Loading loyalty settings…
-                </Text>
-              </BlockStack>
-            ) : (
-              <FormLayout>
-                <TextField
-                  label="Points per dollar"
-                  type="number"
-                  min={1}
-                  autoComplete="off"
-                  value={form.pointsPerDollar}
-                  onChange={(value) =>
-                    setForm((prev) => ({ ...prev, pointsPerDollar: value }))
-                  }
-                  helpText="How many points customers earn per $1 spent"
-                />
-                <TextField
-                  label="Reward threshold"
-                  type="number"
-                  min={1}
-                  autoComplete="off"
-                  value={form.rewardThreshold}
-                  onChange={(value) =>
-                    setForm((prev) => ({ ...prev, rewardThreshold: value }))
-                  }
-                  helpText="Points required to redeem a reward"
-                />
-                <TextField
-                  label="Points name"
-                  autoComplete="off"
-                  value={form.pointsName}
-                  onChange={(value) =>
-                    setForm((prev) => ({ ...prev, pointsName: value }))
-                  }
-                  helpText='Display name for points (e.g. "points", "stars")'
-                />
-                <Checkbox
-                  label="Loyalty program active"
-                  checked={form.isActive}
-                  onChange={(checked) =>
-                    setForm((prev) => ({ ...prev, isActive: checked }))
-                  }
-                  helpText="When disabled, new points are not awarded on orders"
-                />
-                <Button
-                  variant="primary"
-                  onClick={handleSave}
-                  loading={saving}
-                >
-                  Save settings
-                </Button>
-              </FormLayout>
-            )}
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
+      <div className="lp-card">
+        {loading ? (
+          <div className="lp-loading-center">
+            <Spinner accessibilityLabel="Loading settings" size="large" />
+          </div>
+        ) : (
+          <div className="lp-settings-form">
+            <FormLayout>
+              <TextField
+                label="Points per dollar"
+                type="number"
+                min={1}
+                autoComplete="off"
+                value={form.pointsPerDollar}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, pointsPerDollar: value }))
+                }
+                helpText="How many points customers earn per $1 spent"
+              />
+              <TextField
+                label="Reward threshold"
+                type="number"
+                min={1}
+                autoComplete="off"
+                value={form.rewardThreshold}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, rewardThreshold: value }))
+                }
+                helpText="Points required to redeem a reward"
+              />
+              <TextField
+                label="Points name"
+                autoComplete="off"
+                value={form.pointsName}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, pointsName: value }))
+                }
+                helpText='Display name for points (e.g. "points", "stars")'
+              />
+              <Checkbox
+                label="Loyalty program active"
+                checked={form.isActive}
+                onChange={(checked) =>
+                  setForm((prev) => ({ ...prev, isActive: checked }))
+                }
+                helpText="When disabled, new points are not awarded on orders"
+              />
+              <Button variant="primary" onClick={handleSave} loading={saving}>
+                Save settings
+              </Button>
+            </FormLayout>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

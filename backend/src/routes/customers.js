@@ -18,6 +18,7 @@ function formatCustomer(customer) {
     lastName: customer.lastName,
     totalPoints: customer.totalPoints,
     lifetimePoints: customer.lifetimePoints,
+    lifetimeSpend: Number(customer.lifetimeSpend),
     tier: customer.tier,
     createdAt: customer.createdAt,
   };
@@ -63,6 +64,12 @@ function buildCustomerWhere(storeId, query) {
     }
   }
 
+  const tier =
+    typeof query.tier === "string" ? query.tier.trim().toUpperCase() : "";
+  if (tier === "BRONZE" || tier === "SILVER" || tier === "GOLD") {
+    where.tier = tier;
+  }
+
   if (conditions.length === 1) {
     Object.assign(where, conditions[0]);
   } else if (conditions.length > 1) {
@@ -74,7 +81,7 @@ function buildCustomerWhere(storeId, query) {
 
 /**
  * GET /api/customers — list loyalty customers for the authenticated store
- * Query: page, limit, email, name
+ * Query: page, limit, email, name, tier
  */
 router.get("/", async (req, res) => {
   try {

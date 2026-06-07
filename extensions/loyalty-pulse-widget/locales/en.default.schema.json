@@ -1,0 +1,18 @@
+{
+  "loyalty_widget": {
+    "name": "LoyaltyPulse Widget"
+  },
+  "blocks": {
+    "loyalty_widget": {
+      "name": "LoyaltyPulse Widget",
+      "settings": {
+        "heading": {
+          "label": "Heading"
+        },
+        "login_message": {
+          "label": "Guest message"
+        }
+      }
+    }
+  }
+}

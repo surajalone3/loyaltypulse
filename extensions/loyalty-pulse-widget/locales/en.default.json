@@ -1,0 +1,8 @@
+{
+  "loyalty_widget": {
+    "name": "LoyaltyPulse Widget",
+    "heading": "Your Loyalty Rewards",
+    "login_message": "Log in to view your points balance and available rewards.",
+    "guest_cta": "Log in"
+  }
+}

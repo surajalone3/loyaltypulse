@@ -73,6 +73,7 @@ model Store {
   upsellOffers      UpsellOffer[]
   upsellConversions UpsellConversion[]
   reviewRequests    ReviewRequest[]
+  rewards           Reward[]
 }
 
 // ---------------------------------------------------------------------------
@@ -138,6 +139,25 @@ model PointsTransaction {
   @@index([storeId])
   @@index([orderId])
   @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Redeemable rewards (merchant-defined)
+// ---------------------------------------------------------------------------
+model Reward {
+  id              String   @id @default(cuid())
+  storeId         String
+  name            String
+  description     String?
+  pointsRequired  Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([storeId, isActive])
 }
 
 // ---------------------------------------------------------------------------

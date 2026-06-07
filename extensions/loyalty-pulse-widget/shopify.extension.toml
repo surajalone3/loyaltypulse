@@ -1,0 +1,7 @@
+api_version = "2025-01"
+
+[[extensions]]
+name = "LoyaltyPulse Widget"
+handle = "loyaltypulse-suraj-widget-2026"
+type = "theme"
+uid = "f47ac10b-58cc-4372-a567-0e02b2c3d479"

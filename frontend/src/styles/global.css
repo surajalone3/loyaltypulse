@@ -1,0 +1,33 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: #0b0b0f;
+  color: #f4f4f7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Polaris form controls inside dark layout */
+.lp-settings-form .Polaris-TextField__Backdrop {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.lp-settings-form .Polaris-TextField__Input {
+  color: #f4f4f7;
+}
+
+.lp-settings-form .Polaris-Text--root {
+  color: #8b8b9a;
+}

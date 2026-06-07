@@ -1,0 +1,10 @@
+# Optional ngrok config. Start with: ngrok start loyaltypulse --config ngrok.yml
+#
+# ngrok FREE cannot inject ngrok-skip-browser-warning for Shopify App Proxy.
+# For App Proxy testing, prefer: npm run dev:shopify  (Cloudflare tunnel)
+#
+version: 3
+endpoints:
+  - name: loyaltypulse
+    upstream:
+      url: 3000

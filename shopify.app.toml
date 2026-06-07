@@ -1,0 +1,29 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "8f8baa2cacf6cfff4ac6780ff48bf52b"
+name = "LoyaltyPulse"
+application_url = "https://legroom-perkiness-bucktooth.ngrok-free.dev"
+embedded = true
+handle = "loyaltypulse-suraj-2026"
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-04"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_customers,write_customers,write_discounts,read_orders,write_orders,read_products,write_app_proxy"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://legroom-perkiness-bucktooth.ngrok-free.dev/auth/callback"
+]
+
+[app_proxy]
+url = "https://legroom-perkiness-bucktooth.ngrok-free.dev/apps/loyaltypulse"
+subpath = "loyaltypulse"
+prefix = "apps"

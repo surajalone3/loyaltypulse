@@ -7,11 +7,26 @@ import {
 
 const router = Router();
 
+function logIncomingWebhook(req) {
+  console.log("[webhook:orders-paid] Incoming request", {
+    method: req.method,
+    url: req.originalUrl,
+    topic: req.get("x-shopify-topic") ?? null,
+    shop: req.get("x-shopify-shop-domain") ?? null,
+    webhookId: req.get("x-shopify-webhook-id") ?? null,
+    apiVersion: req.get("x-shopify-api-version") ?? null,
+    bodyBytes: req.body instanceof Buffer ? req.body.length : 0,
+  });
+}
+
 /**
  * POST /api/webhooks/orders-paid
  * Shopify orders/paid webhook (raw JSON body required for HMAC).
  */
-router.post("/orders-paid", verifyShopifyWebhook, async (req, res) => {
+router.post("/orders-paid", (req, _res, next) => {
+  logIncomingWebhook(req);
+  next();
+}, verifyShopifyWebhook, async (req, res) => {
   const shop = req.webhook?.domain;
 
   try {
@@ -23,7 +38,25 @@ router.post("/orders-paid", verifyShopifyWebhook, async (req, res) => {
       return res.status(400).json({ error: "Invalid JSON body" });
     }
 
+    console.log("[webhook:orders-paid] Parsed order payload", {
+      shop,
+      orderId: order.id ?? null,
+      orderName: order.name ?? null,
+      customerId: order.customer?.id ?? null,
+      customerEmail: order.customer?.email ?? order.email ?? null,
+      totalPrice: order.total_price ?? order.current_total_price ?? null,
+    });
+
     const result = await processOrdersPaidWebhook(shop, order);
+
+    console.log("[webhook:orders-paid] Handler completed", {
+      shop,
+      skipped: result.skipped ?? false,
+      reason: result.reason ?? null,
+      customerId: result.customer?.id ?? null,
+      shopifyCustomerId: result.customer?.shopifyCustomerId ?? null,
+      pointsAwarded: result.pointsAwarded ?? 0,
+    });
 
     res.status(200).json({
       success: true,
