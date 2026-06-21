@@ -17,7 +17,7 @@ import ReviewsPage from "./pages/ReviewsPage.jsx";
 import ReferralsPage from "./pages/ReferralsPage.jsx";
 import AnalyticsPage from "./pages/AnalyticsPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
-import { isEmbeddedApp } from "./utils/appBridge.js";
+import { isEmbeddedApp, buildAppPath } from "./utils/appBridge.js";
 import "./styles/global.css";
 
 const PAGE_TITLES = {
@@ -49,7 +49,7 @@ function StandaloneMessage() {
 function AppNavigation({ onNavigate, children }) {
   const handleNav = (event, target) => {
     event.preventDefault();
-    const href = hrefFromPage(target);
+    const href = buildAppPath(hrefFromPage(target));
     window.history.pushState({ page: target }, "", href);
     onNavigate(target);
   };
@@ -57,11 +57,19 @@ function AppNavigation({ onNavigate, children }) {
   return (
     <>
       <NavMenu>
-        <a href="/" rel="home" onClick={(event) => handleNav(event, "dashboard")}>
+        <a
+          href={buildAppPath("/")}
+          rel="home"
+          onClick={(event) => handleNav(event, "dashboard")}
+        >
           Dashboard
         </a>
         {NAV_ITEMS.map(({ id, label, href }) => (
-          <a key={id} href={href} onClick={(event) => handleNav(event, id)}>
+          <a
+            key={id}
+            href={buildAppPath(href)}
+            onClick={(event) => handleNav(event, id)}
+          >
             {label}
           </a>
         ))}
@@ -129,8 +137,9 @@ function renderPage(page) {
 
 export default function App() {
   const [page, setPage] = useSyncedPageNavigation();
+  const [embedded] = useState(() => isEmbeddedApp());
 
-  if (!isEmbeddedApp()) {
+  if (!embedded) {
     return (
       <PolarisAppProvider i18n={enTranslations}>
         <StandaloneMessage />
