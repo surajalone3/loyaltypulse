@@ -1,6 +1,14 @@
 import { prisma } from "../shopify.js";
 import { awardPoints } from "./points.js";
-import { tierFromLifetimeSpend } from "../utils/tier.js";
+import { resolveCustomerTier } from "../utils/tier.js";
+import {
+  ensureCustomerReferralCode,
+  processReferralRewardsOnOrder,
+} from "./referrals.js";
+import {
+  createReviewRequestAfterOrder,
+  getLoyaltyReviewSettings,
+} from "./reviewRequests.js";
 
 export class OrdersPaidWebhookError extends Error {
   constructor(message, statusCode = 400) {
@@ -131,6 +139,8 @@ export async function processOrdersPaidWebhook(shopDomain, orderPayload) {
       },
     });
 
+    const isNewCustomer = !customer;
+
     if (!customer) {
       customer = await tx.customer.create({
         data: {
@@ -154,9 +164,20 @@ export async function processOrdersPaidWebhook(shopDomain, orderPayload) {
       console.log(`${logPrefix} Customer updated`, { customerId: customer.id });
     }
 
+    customer = await ensureCustomerReferralCode(customer, store.id, tx);
+
+    const priorEarned = await tx.pointsTransaction.findFirst({
+      where: {
+        customerId: customer.id,
+        type: "EARNED",
+      },
+      select: { id: true },
+    });
+    const isFirstPurchase = !priorEarned;
+
     const newLifetimeSpend =
       Number(customer.lifetimeSpend) + orderTotal;
-    const tier = tierFromLifetimeSpend(newLifetimeSpend);
+    const tier = await resolveCustomerTier(store.id, newLifetimeSpend, tx);
 
     customer = await tx.customer.update({
       where: { id: customer.id },
@@ -208,6 +229,33 @@ export async function processOrdersPaidWebhook(shopDomain, orderPayload) {
       });
     }
 
+    const bonusResult = await processReferralRewardsOnOrder({
+      storeId: store.id,
+      customerId: customer.id,
+      orderId: shopifyOrderId,
+      loyaltyProgram,
+      isFirstPurchase: isFirstPurchase || isNewCustomer,
+      tx,
+    });
+
+    if (bonusResult.welcomeBonusAwarded > 0) {
+      customer = await tx.customer.findUnique({ where: { id: customer.id } });
+      console.log(`${logPrefix} Welcome bonus awarded`, {
+        points: bonusResult.welcomeBonusAwarded,
+      });
+    }
+
+    if (bonusResult.referralBonusAwarded > 0) {
+      console.log(`${logPrefix} Referral bonus awarded`, {
+        points: bonusResult.referralBonusAwarded,
+        referralCompleted: bonusResult.referralCompleted,
+      });
+    } else if (bonusResult.referralCompleted) {
+      console.log(`${logPrefix} Referral completed`, {
+        referralCompleted: true,
+      });
+    }
+
     const existingReview = await tx.reviewRequest.findUnique({
       where: {
         storeId_orderId: {
@@ -220,20 +268,28 @@ export async function processOrdersPaidWebhook(shopDomain, orderPayload) {
     let reviewRequest = existingReview;
 
     if (!reviewRequest) {
-      reviewRequest = await tx.reviewRequest.create({
-        data: {
+      const reviewSettings = await getLoyaltyReviewSettings(store.id, tx);
+      const reviewResult = await createReviewRequestAfterOrder(
+        {
           storeId: store.id,
           orderId: shopifyOrderId,
           customerId: customer.id,
           email: customerEmail,
-          sentAt: null,
-          reviewedAt: null,
-          pointsAwarded: 0,
+          delayDays: reviewSettings.reviewRequestDelayDays,
+          enabled: reviewSettings.reviewRequestsEnabled,
         },
-      });
-      console.log(`${logPrefix} ReviewRequest created`, {
-        reviewRequestId: reviewRequest.id,
-      });
+        tx
+      );
+      reviewRequest = reviewResult.reviewRequest;
+
+      if (reviewResult.created) {
+        console.log(`${logPrefix} ReviewRequest created`, {
+          reviewRequestId: reviewRequest.id,
+          scheduledSendAt: reviewRequest.scheduledSendAt,
+        });
+      } else if (reviewResult.reason === "disabled") {
+        console.log(`${logPrefix} ReviewRequest skipped (disabled)`);
+      }
     } else {
       console.log(`${logPrefix} ReviewRequest already exists`, {
         reviewRequestId: reviewRequest.id,
@@ -249,6 +305,7 @@ export async function processOrdersPaidWebhook(shopDomain, orderPayload) {
       shopifyOrderId,
       orderTotal,
       tier,
+      bonusResult,
     };
   });
 

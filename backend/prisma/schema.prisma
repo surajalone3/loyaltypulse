@@ -47,12 +47,29 @@ enum CustomerTier {
   BRONZE
   SILVER
   GOLD
+  PLATINUM
 }
 
 enum PointsTransactionType {
   EARNED
   REDEEMED
   BONUS
+}
+
+enum ReferralStatus {
+  PENDING
+  COMPLETED
+}
+
+enum ReviewRequestStatus {
+  PENDING
+  SENT
+  COMPLETED
+}
+
+enum RewardDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
 }
 
 // ---------------------------------------------------------------------------
@@ -68,12 +85,14 @@ model Store {
   updatedAt   DateTime @updatedAt
 
   loyaltyProgram    LoyaltyProgram?
+  loyaltyTiers      LoyaltyTier[]
   customers         Customer[]
   pointsTransactions PointsTransaction[]
   upsellOffers      UpsellOffer[]
   upsellConversions UpsellConversion[]
   reviewRequests    ReviewRequest[]
   rewards           Reward[]
+  referrals         Referral[]
 }
 
 // ---------------------------------------------------------------------------
@@ -82,14 +101,41 @@ model Store {
 model LoyaltyProgram {
   id               String  @id @default(cuid())
   storeId          String  @unique
+  programName      String  @default("Stars")
   pointsPerDollar  Int     @default(10)
   rewardThreshold  Int     @default(100)
   pointsName       String  @default("points")
+  welcomeBonus     Int     @default(0)
+  referralBonus    Int     @default(0)
+  reviewRequestDelayDays Int @default(7)
+  reviewRequestsEnabled  Boolean @default(true)
   isActive         Boolean @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Configurable loyalty tiers (per store)
+// ---------------------------------------------------------------------------
+model LoyaltyTier {
+  id                  String       @id @default(cuid())
+  storeId             String
+  tierKey             CustomerTier
+  name                String
+  minLifetimeSpend    Decimal      @default(0) @db.Decimal(12, 2)
+  color               String       @default("#CD7F32")
+  benefitsDescription String       @default("")
+  enabled             Boolean      @default(true)
+  sortOrder           Int          @default(0)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, tierKey])
+  @@index([storeId])
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +152,7 @@ model Customer {
   lifetimePoints     Int          @default(0)
   lifetimeSpend      Decimal      @default(0) @db.Decimal(12, 2)
   tier               CustomerTier @default(BRONZE)
+  referralCode       String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
@@ -113,10 +160,38 @@ model Customer {
   pointsTransactions PointsTransaction[]
   upsellConversions  UpsellConversion[]
   reviewRequests     ReviewRequest[]
+  redemptions        Redemption[]
+  referralsMade      Referral[]          @relation("ReferralsMade")
+  referralReceived   Referral?           @relation("ReferralsReceived")
 
   @@unique([storeId, shopifyCustomerId])
+  @@unique([storeId, referralCode])
   @@index([storeId])
+  @@index([storeId, tier])
   @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// Customer referrals
+// ---------------------------------------------------------------------------
+model Referral {
+  id                 String         @id @default(cuid())
+  storeId            String
+  referrerCustomerId String
+  referredCustomerId String         @unique
+  referralCode       String
+  status             ReferralStatus @default(PENDING)
+  rewardIssued       Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  referrerCustomer Customer @relation("ReferralsMade", fields: [referrerCustomerId], references: [id], onDelete: Cascade)
+  referredCustomer Customer @relation("ReferralsReceived", fields: [referredCustomerId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([referrerCustomerId])
+  @@index([status])
+  @@index([referralCode])
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +212,7 @@ model PointsTransaction {
 
   @@index([customerId])
   @@index([storeId])
+  @@index([storeId, createdAt])
   @@index([orderId])
   @@index([createdAt])
 }
@@ -145,19 +221,44 @@ model PointsTransaction {
 // Redeemable rewards (merchant-defined)
 // ---------------------------------------------------------------------------
 model Reward {
-  id              String   @id @default(cuid())
+  id              String             @id @default(cuid())
   storeId         String
   name            String
   description     String?
   pointsRequired  Int
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  discountType    RewardDiscountType @default(PERCENTAGE)
+  discountValue   Decimal            @default(10) @db.Decimal(10, 2)
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  redemptions Redemption[]
 
   @@index([storeId])
   @@index([storeId, isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Reward redemptions (storefront coupon codes)
+// ---------------------------------------------------------------------------
+model Redemption {
+  id                String             @id @default(cuid())
+  customerId        String
+  rewardId          String
+  pointsSpent       Int
+  couponCode        String             @unique
+  shopifyDiscountId String?
+  discountType      RewardDiscountType
+  discountValue     Decimal            @db.Decimal(10, 2)
+  createdAt         DateTime           @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reward   Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([rewardId])
+  @@index([createdAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -210,22 +311,27 @@ model UpsellConversion {
 // Review request emails
 // ---------------------------------------------------------------------------
 model ReviewRequest {
-  id             String    @id @default(cuid())
-  storeId        String
-  orderId        String
-  customerId     String?
-  email          String
-  sentAt         DateTime?
-  reviewedAt     DateTime?
-  pointsAwarded  Int       @default(0)
-  createdAt      DateTime  @default(now())
+  id              String              @id @default(cuid())
+  storeId         String
+  orderId         String
+  customerId      String?
+  email           String
+  status          ReviewRequestStatus @default(PENDING)
+  scheduledSendAt DateTime?
+  sentAt          DateTime?
+  reviewedAt      DateTime?
+  pointsAwarded   Int                 @default(0)
+  createdAt       DateTime            @default(now())
 
   store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@unique([storeId, orderId])
   @@index([storeId])
+  @@index([storeId, status])
+  @@index([status, scheduledSendAt])
   @@index([orderId])
   @@index([customerId])
   @@index([email])
+  @@index([scheduledSendAt])
 }

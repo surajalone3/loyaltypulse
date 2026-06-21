@@ -32,8 +32,7 @@ loyaltypulse/
     └── src/
         ├── main.jsx
         ├── App.jsx
-        ├── pages/
-        │   └── HomePage.jsx
+        ├── pages/          # Dashboard, Customers, Settings, etc.
         └── utils/
             ├── appBridge.js
             └── api.js
@@ -61,11 +60,24 @@ npm run dev:frontend
 
 7. Install on a dev store: `https://{HOST}/auth?shop=your-store.myshopify.com`
 
+## Documentation
+
+| Guide | Purpose |
+|-------|---------|
+| [docs/PRODUCTION_DEPLOYMENT_GUIDE.md](docs/PRODUCTION_DEPLOYMENT_GUIDE.md) | Production deploy walkthrough |
+| [docs/STAGING_DEPLOYMENT_GUIDE.md](docs/STAGING_DEPLOYMENT_GUIDE.md) | Staging environment setup |
+| [docs/MERCHANT_ONBOARDING.md](docs/MERCHANT_ONBOARDING.md) | Merchant setup guide |
+| [docs/TESTING_CHECKLIST.md](docs/TESTING_CHECKLIST.md) | QA checklist (points, tiers, etc.) |
+| [docs/APP_STORE_LAUNCH_CHECKLIST.md](docs/APP_STORE_LAUNCH_CHECKLIST.md) | Full App Store launch |
+
 ## Routes
 
 | Route | Description |
 |-------|-------------|
 | `GET /auth` | Start OAuth (requires `?shop=`) |
-| `GET /auth/callback` | OAuth callback (HMAC verified by Shopify API lib) |
+| `GET /auth/callback` | OAuth callback |
 | `GET /api` | Authenticated app info |
-| `GET /api/products/count` | Example Admin API query |
+| `GET /api/settings` | Loyalty program settings |
+| `GET /api/dashboard` | Dashboard metrics |
+| `POST /api/webhooks/*` | Shopify webhooks (HMAC) |
+| `GET /apps/loyaltypulse/loyalty` | Storefront widget (app proxy) |

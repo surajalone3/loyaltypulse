@@ -1,15 +1,20 @@
-/**
- * Tier thresholds based on lifetime spend (USD).
- * BRONZE: < $200 | SILVER: $200–$499 | GOLD: $500+
- */
-export function tierFromLifetimeSpend(lifetimeSpend) {
-  const amount = Number(lifetimeSpend);
+import {
+  resolveTierFromLifetimeSpend,
+  getLoyaltyTiersForStore,
+  sortTiers,
+} from "../services/loyaltyTiers.js";
 
-  if (amount >= 500) {
-    return "GOLD";
-  }
-  if (amount >= 200) {
-    return "SILVER";
-  }
-  return "BRONZE";
+export async function resolveCustomerTier(storeId, lifetimeSpend, tx) {
+  const tiers = await getLoyaltyTiersForStore(storeId, tx);
+  const formatted = sortTiers(tiers).map((tier) => ({
+    tierKey: tier.tierKey,
+    name: tier.name,
+    minLifetimeSpend: Number(tier.minLifetimeSpend),
+    color: tier.color,
+    benefitsDescription: tier.benefitsDescription,
+    enabled: tier.enabled,
+    sortOrder: tier.sortOrder,
+  }));
+
+  return resolveTierFromLifetimeSpend(lifetimeSpend, formatted);
 }

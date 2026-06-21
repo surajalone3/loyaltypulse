@@ -66,7 +66,7 @@ function buildCustomerWhere(storeId, query) {
 
   const tier =
     typeof query.tier === "string" ? query.tier.trim().toUpperCase() : "";
-  if (tier === "BRONZE" || tier === "SILVER" || tier === "GOLD") {
+  if (tier === "BRONZE" || tier === "SILVER" || tier === "GOLD" || tier === "PLATINUM") {
     where.tier = tier;
   }
 

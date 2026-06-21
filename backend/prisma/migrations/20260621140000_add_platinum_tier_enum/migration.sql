@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "CustomerTier" ADD VALUE IF NOT EXISTS 'PLATINUM';

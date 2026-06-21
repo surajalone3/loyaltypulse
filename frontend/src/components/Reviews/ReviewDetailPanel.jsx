@@ -81,6 +81,16 @@ export default function ReviewDetailPanel({ review, onClose }) {
             <span className="lp-detail-value">{formatDate(review.sentAt, true)}</span>
           </div>
           <div className="lp-detail-field">
+            <span className="lp-detail-label">Reviewed Date</span>
+            <span className="lp-detail-value">{formatDate(review.reviewedAt, true)}</span>
+          </div>
+          <div className="lp-detail-field">
+            <span className="lp-detail-label">Scheduled Send</span>
+            <span className="lp-detail-value">
+              {formatDate(review.scheduledSendAt, true)}
+            </span>
+          </div>
+          <div className="lp-detail-field">
             <span className="lp-detail-label">Created Date</span>
             <span className="lp-detail-value">{formatDate(review.createdAt, true)}</span>
           </div>

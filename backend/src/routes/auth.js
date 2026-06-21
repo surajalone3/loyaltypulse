@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { shopify } from "../shopify.js";
 import { ensureStoreSetup } from "../services/ensureStoreSetup.js";
-import { registerOrdersPaidWebhook } from "../services/registerWebhooks.js";
+import { registerOrdersPaidWebhook, registerAppUninstalledWebhook } from "../services/registerWebhooks.js";
 
 const router = Router();
 
@@ -41,9 +41,15 @@ router.get("/callback", async (req, res) => {
     await ensureStoreSetup(session);
 
     try {
-      const webhookResult = await registerOrdersPaidWebhook(session);
+      const [ordersPaidResult, appUninstalledResult] = await Promise.all([
+        registerOrdersPaidWebhook(session),
+        registerAppUninstalledWebhook(session),
+      ]);
       if (process.env.NODE_ENV !== "production") {
-        console.log("[auth] Webhook registration:", webhookResult);
+        console.log("[auth] Webhook registration:", {
+          ordersPaid: ordersPaidResult,
+          appUninstalled: appUninstalledResult,
+        });
       }
     } catch (webhookError) {
       console.warn(

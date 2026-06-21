@@ -1,4 +1,11 @@
 import { prisma } from "../shopify.js";
+import { getPublicProgramLabel } from "./loyaltySettings.js";
+import {
+  formatStorefrontTierPayload,
+  getLoyaltyTiersForStore,
+} from "./loyaltyTiers.js";
+import { getStorefrontReferralPayload } from "./referrals.js";
+import { getCustomerReviewStatus } from "./reviewRequests.js";
 
 function shopifyCustomerGid(numericId) {
   return `gid://shopify/Customer/${numericId}`;
@@ -54,10 +61,16 @@ export async function getStorefrontLoyalty(shop, loggedInCustomerId) {
     };
   }
 
+  const programLabel = getPublicProgramLabel(loyaltyProgram);
+
   const base = {
     available: true,
     programActive: loyaltyProgram.isActive,
-    pointsName: loyaltyProgram.pointsName,
+    programName: programLabel,
+    pointsName: programLabel,
+    pointsPerDollar: loyaltyProgram.pointsPerDollar,
+    welcomeBonus: loyaltyProgram.welcomeBonus,
+    referralBonus: loyaltyProgram.referralBonus,
     shop: store.shop,
   };
 
@@ -96,6 +109,11 @@ export async function getStorefrontLoyalty(shop, loggedInCustomerId) {
     orderBy: { pointsRequired: "asc" },
   });
 
+  const loyaltyTiers = await getLoyaltyTiersForStore(store.id);
+  const tierPayload = formatStorefrontTierPayload(customer, loyaltyTiers);
+  const referrals = await getStorefrontReferralPayload(store, customer);
+  const reviewStatus = await getCustomerReviewStatus(customer.id);
+
   return {
     ...base,
     loggedIn: true,
@@ -108,6 +126,9 @@ export async function getStorefrontLoyalty(shop, loggedInCustomerId) {
     },
     pointsBalance: customer.totalPoints,
     tier: customer.tier,
+    tierInfo: tierPayload,
+    referrals,
+    reviewStatus,
     lifetimeSpend: Number(customer.lifetimeSpend),
     rewards: rewards.map((reward) =>
       formatRewardForStorefront(reward, customer.totalPoints)

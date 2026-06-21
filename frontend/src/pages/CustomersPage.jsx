@@ -10,6 +10,7 @@ const TIER_OPTIONS = [
   { value: "BRONZE", label: "Bronze" },
   { value: "SILVER", label: "Silver" },
   { value: "GOLD", label: "Gold" },
+  { value: "PLATINUM", label: "Platinum" },
 ];
 
 function formatCustomerName(customer) {

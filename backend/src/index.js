@@ -18,6 +18,7 @@ import {
   getOrdersPaidWebhookUrl,
   isDevModeEnabled,
 } from "./services/registerWebhooks.js";
+import { startReviewRequestScheduler } from "./services/reviewScheduler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -130,6 +131,7 @@ if (isDev) {
 
 app.listen(PORT, () => {
   console.log(`LoyaltyPulse backend listening on port ${PORT}`);
+  startReviewRequestScheduler();
   if (isDev) {
     const host = process.env.HOST?.replace(/\/$/, "");
     console.log(`Public app URL (HOST): ${host ?? "(set HOST in .env)"}`);
@@ -143,6 +145,7 @@ app.listen(PORT, () => {
     console.log(`Start Vite first: npm run dev:frontend`);
     console.log(`App Proxy dev: npm run dev:shopify (Cloudflare tunnel — recommended)`);
     console.log(`Dev loyalty trigger: POST http://localhost:${PORT}/api/dev/process-order`);
+    console.log(`Dev redeem test:     POST http://localhost:${PORT}/api/dev/redeem`);
     const webhookUrl = getOrdersPaidWebhookUrl();
     if (webhookUrl) {
       console.log(`Orders/paid webhook URL: ${webhookUrl}`);

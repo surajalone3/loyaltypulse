@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../shopify.js";
 import { loadStore } from "../middleware/loadStore.js";
+import { redeemReward, RedeemRewardError } from "../services/redeemReward.js";
 
 const router = Router();
 
@@ -12,6 +13,8 @@ function formatReward(reward) {
     name: reward.name,
     description: reward.description,
     pointsRequired: reward.pointsRequired,
+    discountType: reward.discountType,
+    discountValue: Number(reward.discountValue),
     isActive: reward.isActive,
     createdAt: reward.createdAt,
     updatedAt: reward.updatedAt,
@@ -71,6 +74,25 @@ function validateRewardBody(body, { partial = false } = {}) {
     }
   }
 
+  if (!partial || body.discountType !== undefined) {
+    if (body.discountType === undefined && !partial) {
+      data.discountType = "PERCENTAGE";
+    } else if (!["PERCENTAGE", "FIXED_AMOUNT"].includes(body.discountType)) {
+      errors.push("discountType must be PERCENTAGE or FIXED_AMOUNT");
+    } else {
+      data.discountType = body.discountType;
+    }
+  }
+
+  if (!partial || body.discountValue !== undefined) {
+    const parsed = Number(body.discountValue);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      errors.push("discountValue must be a positive number");
+    } else {
+      data.discountValue = parsed;
+    }
+  }
+
   return { errors, data };
 }
 
@@ -127,6 +149,8 @@ router.post("/", async (req, res) => {
         name: data.name,
         description: data.description ?? null,
         pointsRequired: data.pointsRequired,
+        discountType: data.discountType ?? "PERCENTAGE",
+        discountValue: data.discountValue ?? 10,
         isActive: data.isActive ?? true,
       },
     });
@@ -137,6 +161,75 @@ router.post("/", async (req, res) => {
     res.status(500).json({
       error: "Internal server error",
       message: "Failed to create reward.",
+    });
+  }
+});
+
+/**
+ * POST /api/rewards/redeem — redeem a reward for a customer (admin)
+ * Body: { customerId, rewardId }
+ */
+router.post("/redeem", async (req, res) => {
+  try {
+    const store = res.locals.store;
+    const { customerId, rewardId } = req.body ?? {};
+
+    if (!customerId || typeof customerId !== "string") {
+      return res.status(400).json({
+        error: "Validation failed",
+        message: "customerId is required",
+        code: "invalid_request",
+      });
+    }
+
+    if (!rewardId || typeof rewardId !== "string") {
+      return res.status(400).json({
+        error: "Validation failed",
+        message: "rewardId is required",
+        code: "invalid_request",
+      });
+    }
+
+    const result = await redeemReward({
+      storeId: store.id,
+      customerId,
+      rewardId,
+    });
+
+    res.status(200).json({
+      success: true,
+      couponCode: result.couponCode,
+      pointsBalance: result.pointsBalance,
+      pointsSpent: result.pointsSpent,
+      redemption: {
+        id: result.redemption.id,
+        rewardId: result.reward.id,
+        rewardName: result.reward.name,
+        couponCode: result.couponCode,
+        shopifyDiscountId: result.shopifyDiscountId,
+        discountType: result.discountType,
+        discountValue: result.discountValue,
+        pointsSpent: result.pointsSpent,
+        createdAt: result.redemption.createdAt,
+      },
+      customer: {
+        id: result.customer.id,
+        totalPoints: result.customer.totalPoints,
+      },
+    });
+  } catch (error) {
+    if (error instanceof RedeemRewardError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        message: error.message,
+        code: error.code,
+      });
+    }
+
+    console.error("POST /api/rewards/redeem failed:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to redeem reward.",
     });
   }
 });

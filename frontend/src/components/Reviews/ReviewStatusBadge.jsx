@@ -1,13 +1,15 @@
 const STATUS_STYLES = {
   PENDING: "lp-review-status lp-review-status--pending",
   SENT: "lp-review-status lp-review-status--sent",
-  REVIEWED: "lp-review-status lp-review-status--reviewed",
+  COMPLETED: "lp-review-status lp-review-status--completed",
+  REVIEWED: "lp-review-status lp-review-status--completed",
 };
 
 const STATUS_LABELS = {
   PENDING: "Pending",
   SENT: "Sent",
-  REVIEWED: "Reviewed",
+  COMPLETED: "Completed",
+  REVIEWED: "Completed",
 };
 
 export default function ReviewStatusBadge({ status }) {

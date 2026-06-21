@@ -1,158 +1,138 @@
 import { Router } from "express";
-import { prisma } from "../shopify.js";
 import { loadStore } from "../middleware/loadStore.js";
 import {
-  parsePagination,
-  buildPaginationMeta,
-} from "../utils/pagination.js";
+  completeReviewRequest,
+  getReviewStats,
+  listReviewRequests,
+  processDueReviewRequests,
+  ReviewRequestServiceError,
+  sendReviewRequest,
+} from "../services/reviewRequests.js";
 
 const router = Router();
 
 router.use(loadStore);
 
-function deriveStatus(sentAt, reviewedAt) {
-  if (reviewedAt) {
-    return "REVIEWED";
-  }
-  if (sentAt) {
-    return "SENT";
-  }
-  return "PENDING";
-}
-
-function formatReviewRequest(reviewRequest) {
-  const { customer } = reviewRequest;
-
-  return {
-    id: reviewRequest.id,
-    orderId: reviewRequest.orderId,
-    email: reviewRequest.email,
-    status: deriveStatus(reviewRequest.sentAt, reviewRequest.reviewedAt),
-    sentAt: reviewRequest.sentAt,
-    reviewedAt: reviewRequest.reviewedAt,
-    createdAt: reviewRequest.createdAt,
-    customer: customer
-      ? {
-          id: customer.id,
-          email: customer.email,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-        }
-      : null,
-  };
-}
-
-function buildReviewWhere(storeId, query) {
-  const where = { storeId };
-  const conditions = [];
-
-  const email = typeof query.email === "string" ? query.email.trim() : "";
-  const name = typeof query.name === "string" ? query.name.trim() : "";
-  const status =
-    typeof query.status === "string" ? query.status.trim().toUpperCase() : "";
-
-  if (email) {
-    conditions.push({
-      OR: [
-        { email: { contains: email, mode: "insensitive" } },
-        {
-          customer: {
-            email: { contains: email, mode: "insensitive" },
-          },
-        },
-      ],
-    });
-  }
-
-  if (name) {
-    const nameParts = name.split(/\s+/).filter(Boolean);
-    if (nameParts.length === 1) {
-      conditions.push({
-        customer: {
-          OR: [
-            { firstName: { contains: name, mode: "insensitive" } },
-            { lastName: { contains: name, mode: "insensitive" } },
-          ],
-        },
-      });
-    } else {
-      const [first, ...rest] = nameParts;
-      const last = rest.join(" ");
-      conditions.push({
-        customer: {
-          OR: [
-            {
-              AND: [
-                { firstName: { contains: first, mode: "insensitive" } },
-                { lastName: { contains: last, mode: "insensitive" } },
-              ],
-            },
-            { firstName: { contains: name, mode: "insensitive" } },
-            { lastName: { contains: name, mode: "insensitive" } },
-          ],
-        },
-      });
-    }
-  }
-
-  if (status === "PENDING") {
-    where.sentAt = null;
-    where.reviewedAt = null;
-  } else if (status === "SENT") {
-    where.sentAt = { not: null };
-    where.reviewedAt = null;
-  } else if (status === "REVIEWED") {
-    where.reviewedAt = { not: null };
-  }
-
-  if (conditions.length === 1) {
-    Object.assign(where, conditions[0]);
-  } else if (conditions.length > 1) {
-    where.AND = conditions;
-  }
-
-  return where;
-}
-
 /**
  * GET /api/reviews — list review requests for the authenticated store
- * Query: page, limit, email, name, status (PENDING|SENT|REVIEWED)
  */
 router.get("/", async (req, res) => {
   try {
     const store = res.locals.store;
-    const { page, limit, skip } = parsePagination(req.query);
-    const where = buildReviewWhere(store.id, req.query);
-
-    const [total, reviewRequests] = await Promise.all([
-      prisma.reviewRequest.count({ where }),
-      prisma.reviewRequest.findMany({
-        where,
-        include: {
-          customer: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-    ]);
-
+    const payload = await listReviewRequests(store.id, req.query);
     res.json({
-      data: reviewRequests.map(formatReviewRequest),
-      pagination: buildPaginationMeta({ page, limit, total }),
+      shop: store.shop,
+      ...payload,
     });
   } catch (error) {
     console.error("GET /api/reviews failed:", error);
     res.status(500).json({
       error: "Internal server error",
       message: "Failed to load review requests.",
+    });
+  }
+});
+
+/**
+ * GET /api/reviews/stats — review request summary metrics
+ */
+router.get("/stats", async (req, res) => {
+  try {
+    const store = res.locals.store;
+    const stats = await getReviewStats(store.id);
+    res.json({
+      shop: store.shop,
+      ...stats,
+    });
+  } catch (error) {
+    console.error("GET /api/reviews/stats failed:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to load review stats.",
+    });
+  }
+});
+
+/**
+ * POST /api/reviews/send — send a review request (or process due requests)
+ */
+router.post("/send", async (req, res) => {
+  try {
+    const store = res.locals.store;
+    const { reviewRequestId, processDue } = req.body ?? {};
+
+    if (processDue === true) {
+      const result = await processDueReviewRequests(store.id);
+      return res.json({
+        success: true,
+        ...result,
+      });
+    }
+
+    if (!reviewRequestId || typeof reviewRequestId !== "string") {
+      return res.status(400).json({
+        error: "Validation failed",
+        message: "reviewRequestId is required unless processDue is true",
+      });
+    }
+
+    const review = await sendReviewRequest(reviewRequestId, store.id, {
+      force: true,
+    });
+
+    res.json({
+      success: true,
+      review,
+    });
+  } catch (error) {
+    if (error instanceof ReviewRequestServiceError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+
+    console.error("POST /api/reviews/send failed:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to send review request.",
+    });
+  }
+});
+
+/**
+ * POST /api/reviews/complete — mark a review request as completed
+ */
+router.post("/complete", async (req, res) => {
+  try {
+    const store = res.locals.store;
+    const { reviewRequestId } = req.body ?? {};
+
+    if (!reviewRequestId || typeof reviewRequestId !== "string") {
+      return res.status(400).json({
+        error: "Validation failed",
+        message: "reviewRequestId is required",
+      });
+    }
+
+    const review = await completeReviewRequest(reviewRequestId, store.id);
+
+    res.json({
+      success: true,
+      review,
+    });
+  } catch (error) {
+    if (error instanceof ReviewRequestServiceError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+
+    console.error("POST /api/reviews/complete failed:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to complete review request.",
     });
   }
 });

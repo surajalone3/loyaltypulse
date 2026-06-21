@@ -129,6 +129,181 @@
   color: var(--lpw-gold);
 }
 
+.lpw-tier-badge--platinum {
+  background: rgba(229, 228, 226, 0.15);
+  color: #e5e4e2;
+}
+
+.lpw-tier-badge--custom {
+  border: 1px solid;
+}
+
+.lpw-tier-progress {
+  margin: 0 0 18px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lpw-tier-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.lpw-tier-progress-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.lpw-tier-progress-label {
+  font-size: 12px;
+  color: var(--lpw-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.lpw-tier-next-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lpw-text);
+}
+
+.lpw-tier-progress-message {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lpw-text-muted);
+}
+
+.lpw-referral-section {
+  margin: 0 0 18px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lpw-referral-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lpw-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lpw-referral-copy-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.lpw-referral-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--lpw-text);
+  font-size: 12px;
+}
+
+.lpw-referral-copy-btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--lpw-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lpw-referral-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.lpw-referral-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lpw-referral-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lpw-referral-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--lpw-accent);
+}
+
+.lpw-referral-stat-label {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--lpw-text-muted);
+}
+
+.lpw-referral-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--lpw-text-muted);
+}
+
+.lpw-review-status {
+  margin: 0 0 18px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lpw-review-status-row {
+  margin-bottom: 8px;
+}
+
+.lpw-review-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lpw-review-status-badge--pending {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.lpw-review-status-badge--sent {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+}
+
+.lpw-review-status-badge--completed {
+  background: rgba(80, 200, 120, 0.15);
+  color: #50c878;
+}
+
+.lpw-review-status-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lpw-text-muted);
+}
+
 .lpw-section-title {
   margin: 0 0 12px;
   font-size: 13px;
@@ -199,6 +374,57 @@
 
 .lpw-reward-status--locked {
   color: var(--lpw-text-muted);
+}
+
+.lpw-redeem-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--lpw-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+.lpw-redeem-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.lpw-redeem-btn:disabled,
+.lpw-redeem-btn--loading {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.lpw-success {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.lpw-error-banner {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 600;
 }
 
 .lpw-progress {

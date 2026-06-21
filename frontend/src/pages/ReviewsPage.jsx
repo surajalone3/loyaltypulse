@@ -9,7 +9,7 @@ const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
   { value: "PENDING", label: "Pending" },
   { value: "SENT", label: "Sent" },
-  { value: "REVIEWED", label: "Reviewed" },
+  { value: "COMPLETED", label: "Completed" },
 ];
 
 function formatCustomerName(customer, fallbackEmail) {
