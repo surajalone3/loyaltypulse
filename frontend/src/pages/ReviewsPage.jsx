@@ -4,6 +4,14 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { fetchWithSession } from "../utils/api.js";
 import ReviewStatusBadge from "../components/Reviews/ReviewStatusBadge.jsx";
 import ReviewDetailPanel from "../components/Reviews/ReviewDetailPanel.jsx";
+import MetricCard from "../components/ui/MetricCard.jsx";
+import {
+  formatCount,
+  formatCustomerName,
+  formatDate,
+  formatPercent,
+  getCustomerInitials,
+} from "../utils/format.js";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -11,38 +19,6 @@ const STATUS_OPTIONS = [
   { value: "SENT", label: "Sent" },
   { value: "COMPLETED", label: "Completed" },
 ];
-
-function formatCustomerName(customer, fallbackEmail) {
-  const parts = [customer?.firstName, customer?.lastName].filter(Boolean);
-  if (parts.length > 0) {
-    return parts.join(" ");
-  }
-  return fallbackEmail ?? "Unknown";
-}
-
-function formatDate(iso) {
-  if (!iso) {
-    return "—";
-  }
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatCount(value) {
-  return Number(value ?? 0).toLocaleString();
-}
-
-function getInitials(customer, email) {
-  const first = customer?.firstName?.[0] ?? "";
-  const last = customer?.lastName?.[0] ?? "";
-  if (first || last) {
-    return `${first}${last}`.toUpperCase();
-  }
-  return email?.[0]?.toUpperCase() ?? "?";
-}
 
 function formatOrderId(orderId) {
   if (!orderId) {
@@ -76,6 +52,11 @@ export default function ReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [campaignStats, setCampaignStats] = useState({
+    pendingReviewRequests: 0,
+    completedReviews: 0,
+    reviewCompletionRate: 0,
+  });
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
     limit: 20,
@@ -96,10 +77,18 @@ export default function ReviewsPage() {
       setError(null);
 
       const query = buildReviewsQuery({ page, search, status: statusFilter });
-      const data = await fetchWithSession(app, `/api/reviews?${query}`);
+      const [data, dashboard] = await Promise.all([
+        fetchWithSession(app, `/api/reviews?${query}`),
+        fetchWithSession(app, "/api/dashboard").catch(() => ({ metrics: {} })),
+      ]);
 
       setReviews(data.data ?? []);
       setPagination(data.pagination ?? { limit: 20, total: 0, totalPages: 0 });
+      setCampaignStats({
+        pendingReviewRequests: dashboard.metrics?.pendingReviewRequests ?? 0,
+        completedReviews: dashboard.metrics?.completedReviews ?? 0,
+        reviewCompletionRate: dashboard.metrics?.reviewCompletionRate ?? 0,
+      });
     } catch (err) {
       setError(err.message ?? "Failed to load review requests");
       setReviews([]);
@@ -135,15 +124,40 @@ export default function ReviewsPage() {
   const hasFilters = search.trim() || statusFilter;
 
   return (
-    <>
+    <div className="lp-page-stack">
       {error && (
         <div className="lp-banner lp-banner--critical" role="alert">
           Could not load review requests: {error}
         </div>
       )}
 
-      <div className="lp-card">
-        <div className="lp-customers-toolbar">
+      <div className="lp-metric-grid lp-metric-grid--three">
+        <MetricCard
+          label="Pending requests"
+          value={formatCount(campaignStats.pendingReviewRequests)}
+          accent
+        />
+        <MetricCard
+          label="Completed reviews"
+          value={formatCount(campaignStats.completedReviews)}
+        />
+        <MetricCard
+          label="Completion rate"
+          value={formatPercent(campaignStats.reviewCompletionRate)}
+        />
+      </div>
+
+      <div className="lp-card lp-table-card">
+        <div className="lp-page-toolbar">
+          <div>
+            <h2 className="lp-page-toolbar-title">Review campaign</h2>
+            <p className="lp-page-toolbar-subtitle">
+              Track review requests, delivery status, and customer responses.
+            </p>
+          </div>
+        </div>
+
+        <div className="lp-customers-toolbar" style={{ paddingTop: 0 }}>
           <div className="lp-search-input-wrap">
             <svg
               className="lp-search-icon"
@@ -209,10 +223,10 @@ export default function ReviewsPage() {
                   <tr>
                     <th>Customer</th>
                     <th>Email</th>
-                    <th>Order ID</th>
+                    <th>Order</th>
                     <th>Status</th>
-                    <th>Sent Date</th>
-                    <th>Created Date</th>
+                    <th>Sent</th>
+                    <th>Created</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -234,7 +248,7 @@ export default function ReviewsPage() {
                         <td>
                           <div className="lp-table-customer-row">
                             <div className="lp-customer-avatar">
-                              {getInitials(review.customer, displayEmail)}
+                              {getCustomerInitials(review.customer)}
                             </div>
                             <span className="lp-table-customer-name">
                               {formatCustomerName(review.customer, displayEmail)}
@@ -289,6 +303,6 @@ export default function ReviewsPage() {
         review={selectedReview}
         onClose={() => setSelectedReview(null)}
       />
-    </>
+    </div>
   );
 }

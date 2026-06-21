@@ -24,6 +24,10 @@ export default function AppLayout({ title, headerActions, children }) {
     loadShop();
   }, [loadShop]);
 
+  const avatarLabel = shop
+    ? shop.replace(".myshopify.com", "").slice(0, 2).toUpperCase()
+    : "LP";
+
   return (
     <div className="lp-app">
       <header className="lp-header">
@@ -36,6 +40,9 @@ export default function AppLayout({ title, headerActions, children }) {
             </div>
           )}
           {headerActions}
+          <div className="lp-user-avatar" aria-hidden="true">
+            {avatarLabel}
+          </div>
         </div>
       </header>
 

@@ -4,6 +4,8 @@ export const NAV_ITEMS = [
   { id: "transactions", label: "Transactions", href: "/transactions" },
   { id: "rewards", label: "Rewards", href: "/rewards" },
   { id: "reviews", label: "Reviews", href: "/reviews" },
+  { id: "referrals", label: "Referrals", href: "/referrals" },
+  { id: "analytics", label: "Analytics", href: "/analytics" },
   { id: "settings", label: "Settings", href: "/settings" },
 ];
 

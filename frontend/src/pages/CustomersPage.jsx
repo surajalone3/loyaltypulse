@@ -4,6 +4,14 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { fetchWithSession } from "../utils/api.js";
 import TierBadge from "../components/Customers/TierBadge.jsx";
 import CustomerDetailPanel from "../components/Customers/CustomerDetailPanel.jsx";
+import MetricCard from "../components/ui/MetricCard.jsx";
+import {
+  formatCount,
+  formatCurrency,
+  formatCustomerName,
+  formatDate,
+  getCustomerInitials,
+} from "../utils/format.js";
 
 const TIER_OPTIONS = [
   { value: "", label: "All tiers" },
@@ -12,45 +20,6 @@ const TIER_OPTIONS = [
   { value: "GOLD", label: "Gold" },
   { value: "PLATINUM", label: "Platinum" },
 ];
-
-function formatCustomerName(customer) {
-  const parts = [customer?.firstName, customer?.lastName].filter(Boolean);
-  if (parts.length > 0) {
-    return parts.join(" ");
-  }
-  return customer?.email ?? "Unknown";
-}
-
-function formatDate(iso) {
-  if (!iso) {
-    return "—";
-  }
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-  }).format(Number(value ?? 0));
-}
-
-function formatCount(value) {
-  return Number(value ?? 0).toLocaleString();
-}
-
-function getInitials(customer) {
-  const first = customer?.firstName?.[0] ?? "";
-  const last = customer?.lastName?.[0] ?? "";
-  if (first || last) {
-    return `${first}${last}`.toUpperCase();
-  }
-  return customer?.email?.[0]?.toUpperCase() ?? "?";
-}
 
 function buildCustomersQuery({ page, search, tier }) {
   const params = new URLSearchParams({ page: String(page), limit: "20" });
@@ -76,6 +45,11 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [customers, setCustomers] = useState([]);
+  const [summary, setSummary] = useState({
+    totalLoyaltyMembers: 0,
+    customersPerTier: {},
+    totalPointsIssued: 0,
+  });
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
     limit: 20,
@@ -96,11 +70,18 @@ export default function CustomersPage() {
       setError(null);
 
       const query = buildCustomersQuery({ page, search, tier: tierFilter });
-
-      const data = await fetchWithSession(app, `/api/customers?${query}`);
+      const [data, dashboard] = await Promise.all([
+        fetchWithSession(app, `/api/customers?${query}`),
+        fetchWithSession(app, "/api/dashboard").catch(() => ({ metrics: {} })),
+      ]);
 
       setCustomers(data.data ?? []);
       setPagination(data.pagination ?? { limit: 20, total: 0, totalPages: 0 });
+      setSummary({
+        totalLoyaltyMembers: dashboard.metrics?.totalLoyaltyMembers ?? 0,
+        customersPerTier: dashboard.metrics?.customersPerTier ?? {},
+        totalPointsIssued: dashboard.metrics?.totalPointsIssued ?? 0,
+      });
     } catch (err) {
       setError(err.message ?? "Failed to load customers");
       setCustomers([]);
@@ -132,23 +113,48 @@ export default function CustomersPage() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [selectedCustomer]);
 
-  const handlePageChange = (nextPage) => {
-    setPage(nextPage);
-  };
-
   const showEmptyState = !loading && !error && customers.length === 0;
   const hasFilters = search.trim() || tierFilter;
 
   return (
-    <>
+    <div className="lp-page-stack">
       {error && (
         <div className="lp-banner lp-banner--critical" role="alert">
           Could not load customers: {error}
         </div>
       )}
 
-      <div className="lp-card">
-        <div className="lp-customers-toolbar">
+      <div className="lp-crm-header">
+        <MetricCard
+          label="Total members"
+          value={formatCount(summary.totalLoyaltyMembers)}
+          accent
+        />
+        <MetricCard
+          label="Gold members"
+          value={formatCount(summary.customersPerTier?.GOLD)}
+        />
+        <MetricCard
+          label="Silver members"
+          value={formatCount(summary.customersPerTier?.SILVER)}
+        />
+        <MetricCard
+          label="Points issued"
+          value={formatCount(summary.totalPointsIssued)}
+        />
+      </div>
+
+      <div className="lp-card lp-table-card">
+        <div className="lp-page-toolbar">
+          <div>
+            <h2 className="lp-page-toolbar-title">Customer directory</h2>
+            <p className="lp-page-toolbar-subtitle">
+              Search, filter, and manage your loyalty members.
+            </p>
+          </div>
+        </div>
+
+        <div className="lp-customers-toolbar" style={{ paddingTop: 0 }}>
           <div className="lp-search-input-wrap">
             <svg
               className="lp-search-icon"
@@ -218,9 +224,9 @@ export default function CustomersPage() {
                     <th>Customer</th>
                     <th>Email</th>
                     <th>Tier</th>
-                    <th>Points Balance</th>
-                    <th>Lifetime Spend</th>
-                    <th>Created Date</th>
+                    <th>Points balance</th>
+                    <th>Lifetime spend</th>
+                    <th>Joined</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -239,7 +245,7 @@ export default function CustomersPage() {
                     >
                       <td>
                         <div className="lp-table-customer-row">
-                          <div className="lp-customer-avatar">{getInitials(customer)}</div>
+                          <div className="lp-customer-avatar">{getCustomerInitials(customer)}</div>
                           <span className="lp-table-customer-name">
                             {formatCustomerName(customer)}
                           </span>
@@ -273,7 +279,7 @@ export default function CustomersPage() {
                     type="button"
                     className="lp-pagination-btn"
                     disabled={page <= 1}
-                    onClick={() => handlePageChange(page - 1)}
+                    onClick={() => setPage(page - 1)}
                   >
                     Previous
                   </button>
@@ -281,7 +287,7 @@ export default function CustomersPage() {
                     type="button"
                     className="lp-pagination-btn"
                     disabled={page >= pagination.totalPages}
-                    onClick={() => handlePageChange(page + 1)}
+                    onClick={() => setPage(page + 1)}
                   >
                     Next
                   </button>
@@ -296,6 +302,6 @@ export default function CustomersPage() {
         customer={selectedCustomer}
         onClose={() => setSelectedCustomer(null)}
       />
-    </>
+    </div>
   );
 }

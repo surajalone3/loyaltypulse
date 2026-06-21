@@ -14,6 +14,8 @@ import CustomersPage from "./pages/CustomersPage.jsx";
 import TransactionsPage from "./pages/TransactionsPage.jsx";
 import RewardsPage from "./pages/RewardsPage.jsx";
 import ReviewsPage from "./pages/ReviewsPage.jsx";
+import ReferralsPage from "./pages/ReferralsPage.jsx";
+import AnalyticsPage from "./pages/AnalyticsPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 import { isEmbeddedApp } from "./utils/appBridge.js";
 import "./styles/global.css";
@@ -24,6 +26,8 @@ const PAGE_TITLES = {
   transactions: "Transactions",
   rewards: "Rewards",
   reviews: "Reviews",
+  referrals: "Referrals",
+  analytics: "Analytics",
   settings: "Settings",
 };
 
@@ -111,6 +115,10 @@ function renderPage(page) {
       return <RewardsPage />;
     case "reviews":
       return <ReviewsPage />;
+    case "referrals":
+      return <ReferralsPage />;
+    case "analytics":
+      return <AnalyticsPage />;
     case "settings":
       return <SettingsPage />;
     case "dashboard":

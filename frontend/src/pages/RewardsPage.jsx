@@ -5,21 +5,8 @@ import { fetchWithSession } from "../utils/api.js";
 import RewardFormModal from "../components/Rewards/RewardFormModal.jsx";
 import RewardDetailPanel from "../components/Rewards/RewardDetailPanel.jsx";
 import DeleteConfirmDialog from "../components/Rewards/DeleteConfirmDialog.jsx";
-
-function formatDate(iso) {
-  if (!iso) {
-    return "—";
-  }
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function formatCount(value) {
-  return Number(value ?? 0).toLocaleString();
-}
+import MetricCard from "../components/ui/MetricCard.jsx";
+import { formatCount, formatDate } from "../utils/format.js";
 
 function StatusBadge({ isActive }) {
   return (
@@ -42,6 +29,11 @@ export default function RewardsPage() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const [rewards, setRewards] = useState([]);
+  const [summary, setSummary] = useState({
+    activeRewards: 0,
+    totalRedemptions: 0,
+    totalPointsRedeemed: 0,
+  });
   const [selectedReward, setSelectedReward] = useState(null);
   const [formModal, setFormModal] = useState({ open: false, mode: "create", reward: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -55,8 +47,17 @@ export default function RewardsPage() {
       setLoading(true);
       setError(null);
 
-      const data = await fetchWithSession(app, "/api/rewards");
+      const [data, dashboard] = await Promise.all([
+        fetchWithSession(app, "/api/rewards"),
+        fetchWithSession(app, "/api/dashboard").catch(() => ({ metrics: {} })),
+      ]);
+
       setRewards(data.data ?? []);
+      setSummary({
+        activeRewards: dashboard.metrics?.activeRewards ?? 0,
+        totalRedemptions: dashboard.metrics?.totalRedemptions ?? 0,
+        totalPointsRedeemed: dashboard.metrics?.totalPointsRedeemed ?? 0,
+      });
     } catch (err) {
       setError(err.message ?? "Failed to load rewards");
       setRewards([]);
@@ -155,106 +156,97 @@ export default function RewardsPage() {
   };
 
   const showEmptyState = !loading && !error && rewards.length === 0;
+  const activeCount = rewards.filter((reward) => reward.isActive).length;
 
   return (
-    <>
+    <div className="lp-page-stack">
       {error && (
         <div className="lp-banner lp-banner--critical" role="alert">
           {error}
         </div>
       )}
 
-      <div className="lp-card">
-        <div className="lp-customers-toolbar">
-          <p className="lp-toolbar-hint">
+      <div className="lp-metric-grid lp-metric-grid--three">
+        <MetricCard label="Active rewards" value={formatCount(activeCount)} accent />
+        <MetricCard label="Total redemptions" value={formatCount(summary.totalRedemptions)} />
+        <MetricCard
+          label="Points redeemed"
+          value={formatCount(summary.totalPointsRedeemed)}
+        />
+      </div>
+
+      <div className="lp-page-toolbar">
+        <div>
+          <h2 className="lp-page-toolbar-title">Reward catalog</h2>
+          <p className="lp-page-toolbar-subtitle">
             Manage redeemable rewards customers can unlock with points.
           </p>
+        </div>
+        <button type="button" className="lp-btn lp-btn--primary" onClick={openCreate}>
+          + Create reward
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="lp-card lp-loading-center">
+          <Spinner accessibilityLabel="Loading rewards" size="large" />
+        </div>
+      ) : showEmptyState ? (
+        <div className="lp-card lp-empty-state">
+          <p>No rewards created yet</p>
+          <p>Create your first reward to let customers redeem their points.</p>
           <button type="button" className="lp-btn lp-btn--primary" onClick={openCreate}>
-            + Create Reward
+            + Create reward
           </button>
         </div>
-
-        {loading ? (
-          <div className="lp-loading-center">
-            <Spinner accessibilityLabel="Loading rewards" size="large" />
-          </div>
-        ) : showEmptyState ? (
-          <div className="lp-empty-state">
-            <p>No rewards created yet</p>
-            <p>Create your first reward to let customers redeem their points.</p>
-            <button type="button" className="lp-btn lp-btn--primary" onClick={openCreate}>
-              + Create Reward
-            </button>
-          </div>
-        ) : (
-          <div className="lp-table-wrap">
-            <table className="lp-table lp-table--clickable">
-              <thead>
-                <tr>
-                  <th>Reward Name</th>
-                  <th>Points Required</th>
-                  <th>Status</th>
-                  <th>Created Date</th>
-                  <th aria-label="Actions" />
-                </tr>
-              </thead>
-              <tbody>
-                {rewards.map((reward) => (
-                  <tr
-                    key={reward.id}
-                    onClick={() => setSelectedReward(reward)}
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        setSelectedReward(reward);
-                      }
-                    }}
-                    aria-label={`View details for ${reward.name}`}
-                  >
-                    <td>
-                      <span className="lp-table-customer-name">{reward.name}</span>
-                    </td>
-                    <td>
-                      <span className="lp-points-positive">
-                        {formatCount(reward.pointsRequired)}
-                      </span>
-                    </td>
-                    <td>
-                      <StatusBadge isActive={reward.isActive} />
-                    </td>
-                    <td>{formatDate(reward.createdAt)}</td>
-                    <td>
-                      <div className="lp-row-actions">
-                        <button
-                          type="button"
-                          className="lp-btn lp-btn--ghost"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openEdit(reward);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="lp-btn lp-btn--ghost lp-btn--danger-text"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setDeleteTarget(reward);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      ) : (
+        <div className="lp-reward-grid">
+          {rewards.map((reward) => (
+            <article
+              key={reward.id}
+              className="lp-reward-card"
+              onClick={() => setSelectedReward(reward)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setSelectedReward(reward);
+                }
+              }}
+              tabIndex={0}
+              aria-label={`View details for ${reward.name}`}
+            >
+              <div className="lp-reward-card-top">
+                <h3 className="lp-reward-card-name">{reward.name}</h3>
+                <StatusBadge isActive={reward.isActive} />
+              </div>
+              <p className="lp-reward-card-points">{formatCount(reward.pointsRequired)} pts</p>
+              <p className="lp-reward-card-meta">Created {formatDate(reward.createdAt)}</p>
+              <div className="lp-reward-card-actions">
+                <button
+                  type="button"
+                  className="lp-btn lp-btn--ghost"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openEdit(reward);
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="lp-btn lp-btn--ghost lp-btn--danger-text"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setDeleteTarget(reward);
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       <RewardFormModal
         open={formModal.open}
@@ -282,6 +274,6 @@ export default function RewardsPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />
-    </>
+    </div>
   );
 }
