@@ -12,16 +12,12 @@
     "dev:shopify:ngrok": "shopify app dev --tunnel-url=https://legroom-perkiness-bucktooth.ngrok-free.dev:3000",
     "build": "npm run build:frontend && npm run prisma:generate",
     "build:frontend": "npm run build --prefix frontend",
-    "start": "npm run prisma:migrate:deploy --prefix backend && npm run start --prefix backend",
+    "prestart": "node backend/scripts/validate-production-env.mjs",
+    "start": "node backend/scripts/migrate-deploy.mjs && npm run start --prefix backend",
     "prisma:generate": "npm run prisma:generate --prefix backend",
     "prisma:migrate": "npm run prisma:migrate --prefix backend",
+    "verify:railway": "node backend/scripts/verify-railway.mjs",
     "deploy:extension": "shopify app deploy",
     "postinstall": "npm install --prefix backend && npm install --prefix frontend"
-  },
-  "devDependencies": {
-    "prisma": "^6.19.3"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.19.3"
   }
 }

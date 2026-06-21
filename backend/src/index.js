@@ -1,5 +1,6 @@
 import "./env.js";
 
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
@@ -122,6 +123,14 @@ if (isDev) {
 
   app.use(viteProxy);
 } else {
+  const indexHtml = path.join(frontendDist, "index.html");
+  if (!fs.existsSync(indexHtml)) {
+    console.error("[startup] FATAL: Frontend build not found at:", frontendDist);
+    console.error("[startup] Run: npm run build (from repository root)");
+    process.exit(1);
+  }
+
+  console.log("[startup] Serving admin UI from:", frontendDist);
   app.use(serveStatic(frontendDist, { index: false }));
 
   app.get("/*", (_req, res) => {
@@ -129,8 +138,8 @@ if (isDev) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`LoyaltyPulse backend listening on port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`LoyaltyPulse backend listening on 0.0.0.0:${PORT}`);
   startReviewRequestScheduler();
   if (isDev) {
     const host = process.env.HOST?.replace(/\/$/, "");

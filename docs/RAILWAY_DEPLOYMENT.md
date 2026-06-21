@@ -8,37 +8,46 @@
 | **Build command** | `npm run build` |
 | **Start command** | `npm start` |
 
-These are also defined in `railway.json`, `nixpacks.toml`, and `Procfile`.
+Defined in `railway.json`, `nixpacks.toml`, and `Procfile`.
+
+## Startup sequence
+
+1. **prestart** — `validate-production-env.mjs` (fails fast with clear errors if vars missing)
+2. **migrate** — `migrate-deploy.mjs` → `prisma migrate deploy`
+3. **server** — `node backend/src/index.js` (binds `0.0.0.0:PORT`, serves `frontend/dist`)
 
 ## Required environment variables
 
-Set in Railway → **Variables**:
+Copy from [`.env.production.example`](../.env.production.example) into Railway → **Variables**:
 
-| Variable | Required |
-|----------|----------|
-| `DATABASE_URL` | Yes (PostgreSQL plugin or external) |
-| `SHOPIFY_API_KEY` | Yes |
-| `SHOPIFY_API_SECRET` | Yes |
-| `SHOPIFY_SCOPES` | Yes |
-| `HOST` | Yes — your Railway public URL (e.g. `https://loyaltypulse-production.up.railway.app`) |
-| `NODE_ENV` | `production` |
-| `VITE_SHOPIFY_API_KEY` | Yes — same as `SHOPIFY_API_KEY` (used at **build** time for frontend) |
+| Variable | When | Source |
+|----------|------|--------|
+| `DATABASE_URL` | Runtime | Railway PostgreSQL → `${{Postgres.DATABASE_URL}}` |
+| `SHOPIFY_API_KEY` | Runtime | Partner Dashboard → API key |
+| `SHOPIFY_API_SECRET` | Runtime | Partner Dashboard → API secret |
+| `SHOPIFY_SCOPES` | Runtime | `read_orders,read_customers,write_discounts,write_app_proxy` |
+| `HOST` | Runtime | Railway public URL (`https://….up.railway.app`) |
+| `VITE_SHOPIFY_API_KEY` | **Build** | Same as `SHOPIFY_API_KEY` |
+| `NODE_ENV` | Runtime | `production` |
+| `PORT` | Runtime | Auto-injected by Railway |
 
-Do **not** set `DEV_MODE=true` in production.
+## Pre-deploy verification
 
-## What happens on deploy
+```bash
+npm run verify:railway
+npm run build
+npm run verify:railway -- --build
+```
 
-1. **Install** — `postinstall` installs `backend/` and `frontend/` dependencies (`NIXPACKS_INSTALL_DEV_DEPS=true` keeps Vite available).
-2. **Build** — `npm run build` → Vite builds admin UI to `frontend/dist`, then `prisma generate`.
-3. **Start** — `npm start` → `prisma migrate deploy` then `node backend/src/index.js`.
-4. Server listens on `process.env.PORT` (set automatically by Railway).
+## Troubleshooting crashes
 
-## After first deploy
-
-1. Set `HOST` to the Railway service URL and redeploy.
-2. Update `shopify.app.toml` / Partner Dashboard URLs to match.
-3. Run `shopify app deploy` to sync app config.
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| Exit before "listening" | Missing env var | Check deploy logs for `LoyaltyPulse startup failed` banner |
+| `prisma migrate deploy failed` | Bad `DATABASE_URL` | Link Postgres plugin; use public URL with `?sslmode=require` if needed |
+| `Frontend build not found` | Build step skipped | Ensure `npm run build` runs; root directory is repo root |
+| `Missing SHOPIFY_API_KEY` | Vars not set on Railway | Add all variables from `.env.production.example` |
 
 ## Monorepo note
 
-Do **not** set Railway root directory to `backend/` — the server serves the built frontend from `frontend/dist` at the repo root.
+Do **not** set Railway root directory to `backend/`.
