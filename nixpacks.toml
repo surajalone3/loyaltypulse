@@ -1,0 +1,9 @@
+# LoyaltyPulse monorepo — install devDependencies so Vite + Prisma CLI are available at build time.
+[variables]
+NIXPACKS_INSTALL_DEV_DEPS = "true"
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"

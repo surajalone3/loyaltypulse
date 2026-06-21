@@ -2,12 +2,17 @@
   "name": "loyaltypulse",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:shopify": "shopify app dev",
     "dev:shopify:ngrok": "shopify app dev --tunnel-url=https://legroom-perkiness-bucktooth.ngrok-free.dev:3000",
+    "build": "npm run build:frontend && npm run prisma:generate",
     "build:frontend": "npm run build --prefix frontend",
+    "start": "npm run prisma:migrate:deploy --prefix backend && npm run start --prefix backend",
     "prisma:generate": "npm run prisma:generate --prefix backend",
     "prisma:migrate": "npm run prisma:migrate --prefix backend",
     "deploy:extension": "shopify app deploy",
