@@ -5,42 +5,72 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig(({ mode }) => {
+/**
+ * Parse HOST / public app URL without throwing during `vite build`.
+ * Accepts full URLs or bare hostnames (https:// is assumed).
+ */
+function resolvePublicHost(raw) {
+  if (raw === undefined || raw === null) {
+    return null;
+  }
+
+  const trimmed = String(raw).trim().replace(/\/$/, "");
+  if (!trimmed) {
+    return null;
+  }
+
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+  try {
+    const parsed = new URL(candidate);
+    if (!parsed.hostname) {
+      return null;
+    }
+    return parsed.origin;
+  } catch {
+    console.warn(`[vite] Ignoring invalid HOST value: ${JSON.stringify(raw)}`);
+    return null;
+  }
+}
+
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, path.resolve(__dirname, ".."), "");
+  const isBuild = command === "build";
   const backendPort = env.PORT || "3000";
   const frontendPort = env.FRONTEND_PORT || "5173";
-  const publicHost = env.HOST?.replace(/\/$/, "");
-  const tunnelHostname = publicHost
-    ? new URL(publicHost).hostname
-    : undefined;
+  const shopifyApiKey = env.VITE_SHOPIFY_API_KEY || env.SHOPIFY_API_KEY || "";
 
-  // URL the browser uses to load the app (Express on :3000 or ngrok → Express)
-  const appOrigin =
-    publicHost || `http://localhost:${backendPort}`;
-
-  return {
+  const config = {
     plugins: [
       react(),
       {
         name: "html-env",
         transformIndexHtml(html) {
-          return html.replace(
-            /%VITE_SHOPIFY_API_KEY%/g,
-            env.VITE_SHOPIFY_API_KEY || ""
-          );
+          return html.replace(/%VITE_SHOPIFY_API_KEY%/g, shopifyApiKey);
         },
       },
     ],
     envDir: path.resolve(__dirname, ".."),
-    server: {
+    build: {
+      outDir: "dist",
+      emptyOutDir: true,
+    },
+  };
+
+  // Dev server / HMR only — not used during Railway production build
+  if (!isBuild) {
+    const publicHost = resolvePublicHost(env.HOST);
+    const tunnelHostname = publicHost
+      ? new URL(publicHost).hostname
+      : undefined;
+    const appOrigin = publicHost || `http://localhost:${backendPort}`;
+
+    config.server = {
       host: "127.0.0.1",
       port: parseInt(frontendPort, 10),
       strictPort: true,
-      // Express proxy may send Host: localhost:5173 or tunnel host — allow all in dev
       allowedHosts: true,
-      // Asset URLs when served through Express (:3000) or ngrok
       origin: appOrigin,
-      // HMR WebSocket goes through Express (same port as the page), not back to :5173
       hmr: publicHost
         ? {
             protocol: "wss",
@@ -53,7 +83,6 @@ export default defineConfig(({ mode }) => {
             port: parseInt(backendPort, 10),
             clientPort: parseInt(backendPort, 10),
           },
-      // Only used when opening Vite directly at :5173 (not via Express proxy)
       proxy: {
         "/auth": {
           target: `http://127.0.0.1:${backendPort}`,
@@ -64,10 +93,8 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
       },
-    },
-    build: {
-      outDir: "dist",
-      emptyOutDir: true,
-    },
-  };
+    };
+  }
+
+  return config;
 });
