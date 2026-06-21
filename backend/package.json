@@ -10,6 +10,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:recover:railway": "node scripts/recover-railway-migrations.mjs",
     "prisma:push": "prisma db push",
     "verify:redemption": "node scripts/verify-redemption.mjs",
     "verify:settings": "node scripts/verify-settings.mjs",

@@ -16,6 +16,7 @@
     "start": "node backend/scripts/migrate-deploy.mjs && npm run start --prefix backend",
     "prisma:generate": "npm run prisma:generate --prefix backend",
     "prisma:migrate": "npm run prisma:migrate --prefix backend",
+    "prisma:recover:railway": "npm run prisma:recover:railway --prefix backend",
     "verify:railway": "node backend/scripts/verify-railway.mjs",
     "deploy:extension": "shopify app deploy",
     "postinstall": "npm install --prefix backend && npm install --prefix frontend"

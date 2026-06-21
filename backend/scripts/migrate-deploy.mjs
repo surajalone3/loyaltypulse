@@ -33,6 +33,8 @@ if (result.status !== 0) {
   console.error("  • DATABASE_URL points to unreachable or wrong database");
   console.error("  • Railway Postgres not linked to this service");
   console.error("  • Database credentials expired or SSL required (add ?sslmode=require)");
+  console.error("  • P3009 failed migration — run: npm run prisma:recover:railway");
+  console.error("    See docs/PRISMA_MIGRATION_RECOVERY.md");
   console.error("");
   process.exit(result.status ?? 1);
 }
