@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import "@shopify/polaris/build/esm/styles.css";
 import enTranslations from "@shopify/polaris/locales/en.json";
 import { NavMenu } from "@shopify/app-bridge-react";
 import AppLayout from "./components/AppLayout/AppLayout.jsx";
-import { NAV_ITEMS } from "./components/AppLayout/navItems.js";
+import {
+  NAV_ITEMS,
+  hrefFromPage,
+  pageFromPath,
+} from "./components/AppLayout/navItems.js";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import CustomersPage from "./pages/CustomersPage.jsx";
 import TransactionsPage from "./pages/TransactionsPage.jsx";
@@ -41,19 +45,19 @@ function StandaloneMessage() {
 function AppNavigation({ onNavigate, children }) {
   const handleNav = (event, target) => {
     event.preventDefault();
+    const href = hrefFromPage(target);
+    window.history.pushState({ page: target }, "", href);
     onNavigate(target);
   };
 
   return (
     <>
       <NavMenu>
+        <a href="/" rel="home" onClick={(event) => handleNav(event, "dashboard")}>
+          Dashboard
+        </a>
         {NAV_ITEMS.map(({ id, label, href }) => (
-          <a
-            key={id}
-            href={href}
-            {...(id === "dashboard" ? { rel: "home" } : {})}
-            onClick={(event) => handleNav(event, id)}
-          >
+          <a key={id} href={href} onClick={(event) => handleNav(event, id)}>
             {label}
           </a>
         ))}
@@ -61,6 +65,40 @@ function AppNavigation({ onNavigate, children }) {
       {children}
     </>
   );
+}
+
+function useSyncedPageNavigation() {
+  const [page, setPage] = useState(() => pageFromPath(window.location.pathname));
+
+  useEffect(() => {
+    const syncPageFromUrl = () => {
+      setPage(pageFromPath(window.location.pathname));
+    };
+
+    const originalPushState = window.history.pushState.bind(window.history);
+    const originalReplaceState = window.history.replaceState.bind(window.history);
+
+    window.history.pushState = (...args) => {
+      originalPushState(...args);
+      syncPageFromUrl();
+    };
+
+    window.history.replaceState = (...args) => {
+      originalReplaceState(...args);
+      syncPageFromUrl();
+    };
+
+    window.addEventListener("popstate", syncPageFromUrl);
+    syncPageFromUrl();
+
+    return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener("popstate", syncPageFromUrl);
+    };
+  }, []);
+
+  return [page, setPage];
 }
 
 function renderPage(page) {
@@ -82,7 +120,7 @@ function renderPage(page) {
 }
 
 export default function App() {
-  const [page, setPage] = useState("dashboard");
+  const [page, setPage] = useSyncedPageNavigation();
 
   if (!isEmbeddedApp()) {
     return (
