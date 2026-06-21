@@ -95,11 +95,7 @@ export default function App() {
   return (
     <PolarisAppProvider i18n={enTranslations}>
       <AppNavigation onNavigate={setPage}>
-        <AppLayout
-          activePage={page}
-          onNavigate={setPage}
-          title={PAGE_TITLES[page] ?? "Dashboard"}
-        >
+        <AppLayout title={PAGE_TITLES[page] ?? "Dashboard"}>
           {renderPage(page)}
         </AppLayout>
       </AppNavigation>
